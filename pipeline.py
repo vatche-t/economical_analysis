@@ -70,52 +70,6 @@ def get_history_deals(account, password, server, from_date, to_date):
         raise e
 
 
-def determine_single_stage(
-    account_size, profit_target, max_loss, daily_loss, trading_days
-):
-    # Conditions for Single Stage
-    if (
-        0 <= account_size <= 50000
-        and profit_target == 0.06
-        and max_loss == 0.06
-        and daily_loss == 0.02
-        and trading_days >= 3
-    ):
-        return "Single Stage"
-    else:
-        return None
-
-
-def determine_two_stage(
-    account_size,
-    profit_target_stage1,
-    profit_target_stage2,
-    max_loss,
-    daily_loss,
-    trading_days,
-):
-    # Conditions for Two Stage
-    if (
-        0 <= account_size <= 50000
-        and profit_target_stage1 == 0.10
-        and profit_target_stage2 == 0.05
-        and max_loss == 0.12
-        and daily_loss == 0.05
-        and trading_days >= 3
-    ):
-        return "Two Stage"
-    else:
-        return None
-
-
-def determine_rocket_stage(account_size, profit_target, max_loss):
-    # Conditions for Rocket Stage
-    if 0 <= account_size <= 50000 and profit_target == 0.10 and max_loss == 0.05:
-        return "Rocket Stage"
-    else:
-        return None
-
-
 def calculate_metrics(account_size, stage):
     # Calculate additional metrics based on the provided conditions
     if 3000 <= account_size <= 50000 and stage == "Single Stage":
@@ -232,7 +186,7 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
     )
     average_win = deals_dataframe[deals_dataframe["profit"] > 0]["profit"].mean()
     average_loss = deals_dataframe[deals_dataframe["profit"] < 0]["profit"].mean()
-    
+
     # Calculate absolute values of losses and profits
     absolute_losses = -deals_dataframe[deals_dataframe["profit"] < 0]["profit"].sum()
     absolute_profits = deals_dataframe[deals_dataframe["profit"] > 0]["profit"].sum()
@@ -243,7 +197,9 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
 
     # Calculate percentage of average win and average loss
     percentage_of_average_win = (average_win / account_info_df["equity"].iloc[0]) * 100
-    percentage_of_average_loss = (abs(average_loss) / account_info_df["equity"].iloc[0]) * 100
+    percentage_of_average_loss = (
+        abs(average_loss) / account_info_df["equity"].iloc[0]
+    ) * 100
 
     # Convert "time" column to datetime
     deals_dataframe["time"] = pd.to_datetime(deals_dataframe["time"], unit="s")
@@ -256,8 +212,11 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
 
     # Calculate daily loss percentage
     percentage_of_daily_loss = (
-        (absolute_losses / account_info_df["equity"].iloc[0]) / daily_loss_time_diff
-    ) * 100 if daily_loss_time_diff > 0 else None   
+        ((absolute_losses / account_info_df["equity"].iloc[0]) / daily_loss_time_diff)
+        * 100
+        if daily_loss_time_diff > 0
+        else None
+    )
     # Calculating additional metrics based on account size
     account_size = account_info_df["balance"].iloc[0]
     (
@@ -307,11 +266,27 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
                 f"{format(max_loss * 100, '.2f').rstrip('0').rstrip('.')}%".lstrip("0")
             ],
             "Absolute Losses": [absolute_losses],
-            "Percentage of Losses": [f"{format(percentage_of_losses, '.2f').rstrip('0').rstrip('.')}%".lstrip('0')],
+            "Percentage of Losses": [
+                f"{format(percentage_of_losses, '.2f').rstrip('0').rstrip('.')}%".lstrip(
+                    "0"
+                )
+            ],
             "Absolute Profits": [absolute_profits],
-            "Percentage of Profits": [f"{format(percentage_of_profits, '.2f').rstrip('0').rstrip('.')}%".lstrip('0')],
-            "Percentage of Average Win": [f"{format(percentage_of_average_win, '.2f').rstrip('0').rstrip('.')}%".lstrip('0')],
-            "Percentage of Average Loss": [f"{format(percentage_of_average_loss, '.2f').rstrip('0').rstrip('.')}%".lstrip('0')],
+            "Percentage of Profits": [
+                f"{format(percentage_of_profits, '.2f').rstrip('0').rstrip('.')}%".lstrip(
+                    "0"
+                )
+            ],
+            "Percentage of Average Win": [
+                f"{format(percentage_of_average_win, '.2f').rstrip('0').rstrip('.')}%".lstrip(
+                    "0"
+                )
+            ],
+            "Percentage of Average Loss": [
+                f"{format(percentage_of_average_loss, '.2f').rstrip('0').rstrip('.')}%".lstrip(
+                    "0"
+                )
+            ],
             "Daily Loss Time Difference (days)": [daily_loss_time_diff],
             "Active Trading Days": [trading_days],
             "Number of Trades": [number_of_trades],
@@ -324,6 +299,7 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
     )
 
     return financial_data
+
 
 def main():
     account = 51913983
