@@ -26,3 +26,5 @@ dash
 MetaTrader5
 scipy
 matplotlib
+dash-bootstrap-components
+
