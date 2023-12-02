@@ -109,14 +109,11 @@ def determine_status(
 
     if stage == "Single Stage":
         if not (
-            profit_target_stage1 >= 0.06
-            and profit_target_stage2 is None
-            and max_loss <= 0.06
-            and daily_loss < 0.02
-            and trading_days >= 3
-            and percentage_of_losses <= 5.00  # Change the threshold as needed
-            and percentage_of_profits >= 10.00  # Change the threshold as needed
-            and percentage_of_daily_loss <= 2.00  # Change the threshold as needed
+            
+            trading_days >= 3
+            and percentage_of_losses >= 0.06 
+            and percentage_of_profits >= 0.06 
+            and percentage_of_daily_loss >= 0.02 
         ):
             red_causes.append(
                 {
@@ -130,14 +127,10 @@ def determine_status(
             )
     elif stage == "Two Stage":
         if not (
-            profit_target_stage1 >= 0.10
-            and profit_target_stage2 >= 0.05
-            and max_loss < 0.12
-            and daily_loss < 0.05
-            and trading_days >= 3
-            and percentage_of_losses <= 5.00  # Change the threshold as needed
-            and percentage_of_profits >= 10.00  # Change the threshold as needed
-            and percentage_of_daily_loss <= 2.00  # Change the threshold as needed
+            trading_days >= 3
+            and percentage_of_losses >= 0.12  
+            and percentage_of_profits >= 0.1 
+            and percentage_of_daily_loss >= 0.05  
         ):
             red_causes.append(
                 {
@@ -152,18 +145,13 @@ def determine_status(
             )
     elif stage == "Rocket Stage":
         if not (
-            profit_target_stage1 == 0.10
-            and max_loss == 0.05
-            and trading_days >= 3
-            and percentage_of_losses <= 5.00  # Change the threshold as needed
-            and percentage_of_profits >= 10.00  # Change the threshold as needed
-            and percentage_of_daily_loss <= 2.00  # Change the threshold as needed
+            trading_days >= 3
+            and percentage_of_losses >= 0.05
+            and percentage_of_profits >= 0.1  
         ):
             red_causes.append(
                 {
                     "Condition": "Rocket Stage",
-                    "Max Loss": max_loss,
-                    "Profit Target Stage 1": profit_target_stage1,
                     "Percentage of Losses": percentage_of_losses,
                     "Percentage of Profits": percentage_of_profits,
                     "Percentage of Daily Loss": percentage_of_daily_loss,
