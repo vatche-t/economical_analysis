@@ -92,12 +92,7 @@ def calculate_metrics(account_size, stage):
 
     return profit_target_stage1, profit_target_stage2, max_loss, daily_loss
 
-
 def determine_status(
-    profit_target_stage1,
-    profit_target_stage2,
-    max_loss,
-    daily_loss,
     trading_days,
     stage,
     percentage_of_losses,
@@ -108,59 +103,47 @@ def determine_status(
     red_causes = []
 
     if stage == "Single Stage":
-        if not (
-            
-            trading_days >= 3
-            and percentage_of_losses >= 0.06 
-            and percentage_of_profits >= 0.06 
-            and percentage_of_daily_loss >= 0.02 
+        if (
+            percentage_of_profits < 6
+            or percentage_of_daily_loss >= 2
+            or percentage_of_losses >= 6
         ):
             red_causes.append(
                 {
-                    "Condition": "Single Stage",
-                    "Max Loss": max_loss,
-                    "Profit Target Stage 1": profit_target_stage1,
-                    "Percentage of Losses": percentage_of_losses,
+                    "Condition": "Additional Conditions",
                     "Percentage of Profits": percentage_of_profits,
                     "Percentage of Daily Loss": percentage_of_daily_loss,
+                    "Percentage of Losses": percentage_of_losses,
                 }
             )
     elif stage == "Two Stage":
-        if not (
-            trading_days >= 3
-            and percentage_of_losses >= 0.12  
-            and percentage_of_profits >= 0.1 
-            and percentage_of_daily_loss >= 0.05  
+        if (
+            percentage_of_profits < 10
+            or percentage_of_daily_loss < 5
+            or percentage_of_losses >= 12
         ):
             red_causes.append(
                 {
-                    "Condition": "Two Stage",
-                    "Max Loss": max_loss,
-                    "Profit Target Stage 1": profit_target_stage1,
-                    "Profit Target Stage 2": profit_target_stage2,
-                    "Percentage of Losses": percentage_of_losses,
+                    "Condition": "Additional Conditions",
                     "Percentage of Profits": percentage_of_profits,
                     "Percentage of Daily Loss": percentage_of_daily_loss,
+                    "Percentage of Losses": percentage_of_losses,
                 }
             )
     elif stage == "Rocket Stage":
-        if not (
-            trading_days >= 3
-            and percentage_of_losses >= 0.05
-            and percentage_of_profits >= 0.1  
-        ):
+        if percentage_of_profits < 10 or percentage_of_losses >= 5:
             red_causes.append(
                 {
-                    "Condition": "Rocket Stage",
-                    "Percentage of Losses": percentage_of_losses,
+                    "Condition": "Additional Conditions",
                     "Percentage of Profits": percentage_of_profits,
-                    "Percentage of Daily Loss": percentage_of_daily_loss,
+                    "Percentage of Losses": percentage_of_losses,
                 }
             )
     else:
         red_causes.append({"Condition": "N/A"})
 
     return "Red" if red_causes else "Green", red_causes
+
 
 
 def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
@@ -215,10 +198,6 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
     ) = calculate_metrics(account_size, stage)
 
     status, red_causes = determine_status(
-        profit_target_stage1,
-        profit_target_stage2,
-        max_loss,
-        daily_loss,
         trading_days,
         stage,
         percentage_of_losses,
