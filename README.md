@@ -1,14 +1,12 @@
 
+# MetaTrader 5 Financial Analysis Script
+## Overview
+
+This script is designed to analyze financial data from MetaTrader 5 (MT5) and provide insights into trading performance. It covers aspects such as account information, trade history, and financial metrics based on user-defined conditions.
 
 ## Prerequisites
 
-- **Python 3.10:** Make sure you have Python 3.10 installed. You can download it from the [official Python website](https://www.python.org/downloads/).
-
-- **Virtual Environment (venv):** Create a virtual environment to manage project dependencies.
-  ```bash
-  python3 -m venv venv
-  source venv/bin/activate  # On Windows, use venv\Scripts\activate
-  ```
+- **Python 3.11:** Make sure you have Python 3.11 installed. You can download it from the [official Python website](https://www.python.org/downloads/).
 
 - **Install Dependencies:** Install project dependencies using `requirements.txt`.
   ```bash
@@ -25,19 +23,32 @@
 
 
 
-- **Python Version:** 3.10
+- **Python Version:** 3.11
 
 
 - **Dependencies:** Check `requirements.txt` for the list of Python packages used in this project.
 
+
+## Requirements
+
+- Pandas
+- MetaTrader5 (MT5) Python Wrapper
+- Loguru
+
+
+2. Ensure that MetaTrader 5 is installed and accessible.
+
+3. Adjust script parameters such as account details, server, and analysis stage.
+
 ## Usage
 
-1. Ensure you have the required libraries installed: `requests`, `beautifulsoup4`, `pandas`, `loguru`.
+1. Run the script: `python pipeline.py`
 
-2. Create a text file named `hotels.txt` with a list of hotel names and locations.
+2. Follow on-screen instructions to choose the analysis stage (Single Stage, Two Stage, Rocket Stage).
 
-3. Run the script. It will scrape data for each hotel, save it as Feather files, and then merge and save as a CSV file.
+3. Review the generated financial analysis report, which includes metrics such as profit target, daily loss, maximum loss, and more.
 
-```bash
-python main.py
-# economical_analysis
+## Disclaimer
+
+This script is provided for educational and informational purposes only. Trading involves risks, and users should exercise caution and do their own research.
+
