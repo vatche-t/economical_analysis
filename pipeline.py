@@ -92,6 +92,7 @@ def calculate_metrics(account_size, stage):
 
     return profit_target_stage1, profit_target_stage2, max_loss, daily_loss
 
+
 def determine_status(
     trading_days,
     stage,
@@ -145,7 +146,6 @@ def determine_status(
     return "Red" if red_causes else "Green", red_causes
 
 
-
 def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
     # Extracting relevant information from 'deals_dataframe'
     start_date = deals_dataframe["time"].iloc[0]
@@ -163,15 +163,28 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
     absolute_profits = deals_dataframe[deals_dataframe["profit"] > 0]["profit"].sum()
 
     # Calculate percentages
-    percentage_of_losses = (absolute_losses / account_info_df["equity"].iloc[0]) * 100
-    percentage_of_profits = (absolute_profits / account_info_df["equity"].iloc[0]) * 100
+    percentage_of_losses = (absolute_losses / account_info_df["equity"].iloc[-1]) * 100
+    # Extracting profits from completed trades (excluding the first row)
+    # Remove the first row
+    deals_dataframe = deals_dataframe.iloc[1:]
 
-    # Calculate percentage of average win and average loss
-    percentage_of_average_win = (average_win / account_info_df["equity"].iloc[0]) * 100
-    percentage_of_average_loss = (
-        abs(average_loss) / account_info_df["equity"].iloc[0]
+    # Extracting profits from completed trades (excluding rows with NaN in "symbol")
+    profits_from_completed_trades = deals_dataframe.loc[
+        (deals_dataframe["profit"] > 0) & (deals_dataframe["type"] != "initial") & deals_dataframe["symbol"].notna(),
+        "profit"
+    ]
+    # Sum of profits from completed trades
+    total_profits_from_completed_trades = profits_from_completed_trades.sum()
+
+    # Calculate the percentage of profits based on the sum of profits
+    percentage_of_profits = (
+        total_profits_from_completed_trades / account_info_df["equity"].iloc[0]
     ) * 100
-
+    # Calculate percentage of average win and average loss based on equity
+    percentage_of_average_win = (average_win / account_info_df["equity"].iloc[-1]) * 100
+    percentage_of_average_loss = (
+        abs(average_loss) / account_info_df["equity"].iloc[-1]
+    ) * 100
     # Convert "time" column to datetime
     deals_dataframe["time"] = pd.to_datetime(deals_dataframe["time"], unit="s")
 
@@ -211,7 +224,7 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
         {
             "Start Date": [start_date],
             "Account Size": [account_size],
-            "Equity": [account_info_df["equity"].iloc[0]],
+            "Equity": [account_info_df["equity"].iloc[-1]],
             "Status": [status],
             "Profit Target": [
                 f"{format(profit_target_stage1 * 100, '.2f').rstrip('0').rstrip('.')}%".lstrip(
@@ -238,7 +251,7 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
                     "0"
                 )
             ],
-            "Absolute Profits": [absolute_profits],
+            "Absolute Profits": [total_profits_from_completed_trades],
             "Percentage of Profits": [
                 f"{format(percentage_of_profits, '.2f').rstrip('0').rstrip('.')}%".lstrip(
                     "0"
@@ -315,6 +328,7 @@ def main():
             )
             # Display the final data
             logger.info(financial_data)
+            financial_data.to_feather("financial_data.feather")
         else:
             logger.info("Invalid choice. Please choose a valid analysis stage.")
     else:
