@@ -72,21 +72,21 @@ def get_history_deals(account, password, server, from_date, to_date):
 
 def calculate_metrics(account_size, stage):
     # Calculate additional metrics based on the provided conditions
-    if 3000 <= account_size <= 50000 and stage == "Single Stage":
+    if 3000 <= account_size <= 50000 and stage == "1step":
         profit_target_stage1 = 0.06
         profit_target_stage2 = None
         max_loss = 0.06
         daily_loss = 0.02
-    elif 2000 <= account_size <= 20000 and stage == "Two Stage":
+    elif 2000 <= account_size <= 20000 and stage == "2step":
         profit_target_stage1 = 0.10
         profit_target_stage2 = 0.05
         max_loss = 0.12
         daily_loss = 0.05
-    elif 2000 <= account_size <= 20000 and stage == "Rocket Stage":
+    elif 2000 <= account_size <= 20000 and stage == "rocket":
         profit_target_stage1 = 0.10
         profit_target_stage2 = 0.05  # Different from stage 1 for two-stage
         max_loss = 0.05
-        daily_loss = None  # No daily loss for the Rocket Stage
+        daily_loss = None  # No daily loss for the rocket
     else:
         raise ValueError("Invalid account size")
 
@@ -102,7 +102,7 @@ def determine_status(
     # Determine status based on the stage
     red_causes = []
 
-    if stage == "Single Stage":
+    if stage == "1step":
         if (
             percentage_of_profits < 6
             or percentage_of_daily_loss >= 2
@@ -116,7 +116,7 @@ def determine_status(
                     "Percentage of Losses": percentage_of_losses,
                 }
             )
-    elif stage == "Two Stage":
+    elif stage == "2step":
         if (
             percentage_of_profits < 10
             or percentage_of_daily_loss < 5
@@ -130,7 +130,7 @@ def determine_status(
                     "Percentage of Losses": percentage_of_losses,
                 }
             )
-    elif stage == "Rocket Stage":
+    elif stage == "rocket":
         if percentage_of_profits < 10 or percentage_of_losses >= 5:
             red_causes.append(
                 {
@@ -217,7 +217,7 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
                 f"{format(profit_target_stage1 * 100, '.2f').rstrip('0').rstrip('.')}%".lstrip(
                     "0"
                 )
-                if stage != "Rocket Stage"
+                if stage != "rocket"
                 else f"{format(profit_target_stage2 * 100, '.2f').rstrip('0').rstrip('.')}%".lstrip(
                     "0"
                 )
@@ -294,18 +294,18 @@ def main():
 
         # Ask the user to choose the stage
         print("Choose the analysis stage:")
-        print("1. Single Stage")
-        print("2. Two Stage")
-        print("3. Rocket Stage")
+        print("1. 1step")
+        print("2. 2step")
+        print("3. rocket")
         user_choice = int(input("Enter the number corresponding to your choice: "))
 
         # Process and analyze data
         if user_choice == 1:
-            stage = "Single Stage"
+            stage = "1step"
         elif user_choice == 2:
-            stage = "Two Stage"
+            stage = "2step"
         elif user_choice == 3:
-            stage = "Rocket Stage"
+            stage = "rocket"
         else:
             stage = "Invalid Choice"
 
