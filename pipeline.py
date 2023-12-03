@@ -164,27 +164,39 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
 
     # Calculate percentages
     percentage_of_losses = (absolute_losses / account_info_df["equity"].iloc[-1]) * 100
+
+    # Calculating additional metrics based on account size
+    account_size = deals_dataframe["profit"].iloc[0]
+    (
+        profit_target_stage1,
+        profit_target_stage2,
+        max_loss,
+        daily_loss,
+    ) = calculate_metrics(account_size, stage)
+
     # Extracting profits from completed trades (excluding the first row)
-    # Remove the first row
     deals_dataframe = deals_dataframe.iloc[1:]
 
     # Extracting profits from completed trades (excluding rows with NaN in "symbol")
     profits_from_completed_trades = deals_dataframe.loc[
-        (deals_dataframe["profit"] > 0) & (deals_dataframe["type"] != "initial") & deals_dataframe["symbol"].notna(),
-        "profit"
+        (deals_dataframe["profit"] > 0)
+        & (deals_dataframe["type"] != "initial")
+        & deals_dataframe["symbol"].notna(),
+        "profit",
     ]
-    # Sum of profits from completed trades
     total_profits_from_completed_trades = profits_from_completed_trades.sum()
 
     # Calculate the percentage of profits based on the sum of profits
     percentage_of_profits = (
         total_profits_from_completed_trades / account_info_df["equity"].iloc[0]
     ) * 100
+
     # Calculate percentage of average win and average loss based on equity
     percentage_of_average_win = (average_win / account_info_df["equity"].iloc[-1]) * 100
     percentage_of_average_loss = (
         abs(average_loss) / account_info_df["equity"].iloc[-1]
     ) * 100
+
     # Convert "time" column to datetime
     deals_dataframe["time"] = pd.to_datetime(deals_dataframe["time"], unit="s")
 
@@ -201,14 +213,19 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
         if daily_loss_time_diff > 0
         else None
     )
-    # Calculating additional metrics based on account size
-    account_size = account_info_df["balance"].iloc[0]
-    (
-        profit_target_stage1,
-        profit_target_stage2,
-        max_loss,
-        daily_loss,
-    ) = calculate_metrics(account_size, stage)
+
+    ppercentage_of_daily_profit = (
+    ((total_profits_from_completed_trades / account_info_df["equity"].iloc[0]) / daily_loss_time_diff)
+    * 100
+    if daily_loss_time_diff > 0
+    else None
+)
+    # New: Calculate total lots traded
+    total_lots_traded = deals_dataframe["volume"].sum()
+
+    # New: Calculate max permitted losses and today's permitted loss
+    max_permitted_losses = max_loss * account_size / 100
+    todays_permitted_loss = daily_loss * account_info_df["equity"].iloc[-1] / 100
 
     status, red_causes = determine_status(
         trading_days,
@@ -218,8 +235,8 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
         percentage_of_daily_loss,
     )
     logger.info(f"Red Causes: {red_causes}")
-    # Creating the final dataframe
 
+    # Creating the final dataframe
     financial_data = pd.DataFrame(
         {
             "Start Date": [start_date],
@@ -246,12 +263,20 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
                 f"{format(max_loss * 100, '.2f').rstrip('0').rstrip('.')}%".lstrip("0")
             ],
             "Absolute Losses": [absolute_losses],
+            "percentage of daily loss": [
+                f"{format(percentage_of_daily_loss, '.2f').rstrip('0').rstrip('.')}%".lstrip(
+                    "0"
+                )],
             "Percentage of Losses": [
                 f"{format(percentage_of_losses, '.2f').rstrip('0').rstrip('.')}%".lstrip(
                     "0"
                 )
             ],
             "Absolute Profits": [total_profits_from_completed_trades],
+            "percentage of daily profit": [
+                f"{format(ppercentage_of_daily_profit, '.2f').rstrip('0').rstrip('.')}%".lstrip(
+                    "0"
+                )],
             "Percentage of Profits": [
                 f"{format(percentage_of_profits, '.2f').rstrip('0').rstrip('.')}%".lstrip(
                     "0"
@@ -275,6 +300,11 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
             "Average Loss": [average_loss],
             "Platform": ["MetaTrader 5"],  # You can change this based on your platform
             "Server": [account_info_df["server"].iloc[0]],
+            "Total Lots Traded": [total_lots_traded],  # New: Total lots traded
+            "Max Permitted Losses": [max_permitted_losses],  # New: Max permitted losses
+            "Today's Permitted Loss": [
+                todays_permitted_loss
+            ],  # New: Today's permitted loss
         }
     )
 
