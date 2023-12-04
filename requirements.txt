@@ -27,4 +27,5 @@ MetaTrader5
 scipy
 matplotlib
 dash-bootstrap-components
-
+dash_mantine_components
+dash_daq
