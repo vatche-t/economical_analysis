@@ -1,5 +1,5 @@
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from loguru import logger
 import MetaTrader5 as mt5
 
@@ -32,23 +32,23 @@ def get_account_info(account, password, server):
         raise e
 
 
-def get_history_orders(account, password, server, from_date, to_date):
-    try:
-        mt5.initialize()
-        authorized = mt5.login(account, password=password, server=server)
+# def get_history_orders(account, password, server, from_date, to_date):
+#     try:
+#         mt5.initialize()
+#         authorized = mt5.login(account, password=password, server=server)
 
-        history_data = mt5.history_orders_get(from_date, to_date)
-        history_orders_df = pd.DataFrame(
-            list(history_data), columns=history_data[0]._asdict().keys()
-        )
+#         history_data = mt5.history_orders_get(from_date, to_date)
+#         history_orders_df = pd.DataFrame(
+#             list(history_data), columns=history_data[0]._asdict().keys()
+#         )
 
-        # Log the length of the DataFrame
-        logger.info(f"Length of history_orders_df: {len(history_orders_df)}")
+#         # Log the length of the DataFrame
+#         logger.info(f"Length of history_orders_df: {len(history_orders_df)}")
 
-        return history_orders_df
-    except Exception as e:
-        logger.error(f"Error while getting history orders: {str(e)}")
-        raise e
+#         return history_orders_df
+#     except Exception as e:
+#         logger.error(f"Error while getting history orders: {str(e)}")
+#         raise e
 
 
 def get_history_deals(account, password, server, from_date, to_date):
@@ -146,7 +146,18 @@ def determine_status(
     return "Red" if red_causes else "Green", red_causes
 
 
+def calculate_yesterdays_balance(deals_dataframe):
+    # Assuming the first row has the starting profit
+    profit = deals_dataframe["profit"].sum()
+    commission = deals_dataframe["commission"].sum()
+
+    final_balance = profit + commission
+
+    return final_balance
+
+
 def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
+    deals_dataframe = deals_dataframe[deals_dataframe["profit"] != 0.0]
     # Extracting relevant information from 'deals_dataframe'
     start_date = deals_dataframe["time"].iloc[0]
     number_of_trades = len(deals_dataframe)
@@ -173,6 +184,8 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
         max_loss,
         daily_loss,
     ) = calculate_metrics(account_size, stage)
+
+    today_starting_balance = calculate_yesterdays_balance(deals_dataframe)
 
     # Extracting profits from completed trades (excluding the first row)
     deals_dataframe = deals_dataframe.iloc[1:]
@@ -213,13 +226,25 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
         if daily_loss_time_diff > 0
         else None
     )
+    amount_of_daily_loss = (
+        ((absolute_losses / account_info_df["equity"].iloc[0]) / daily_loss_time_diff)
+        if daily_loss_time_diff > 0
+        else None
+    )
 
-    ppercentage_of_daily_profit = (
-    ((total_profits_from_completed_trades / account_info_df["equity"].iloc[0]) / daily_loss_time_diff)
-    * 100
-    if daily_loss_time_diff > 0
-    else None
-)
+    percentage_of_daily_profit = (
+        (
+            (total_profits_from_completed_trades / account_info_df["equity"].iloc[0])
+            / daily_loss_time_diff
+        )
+        * 100
+        if daily_loss_time_diff > 0
+        else None
+    )
+
+    absolute_daily_profit = (percentage_of_daily_profit / 100) * today_starting_balance
+
+    absolute_daily_loss = (percentage_of_daily_loss / 100) * today_starting_balance
     # New: Calculate total lots traded
     total_lots_traded = deals_dataframe["volume"].sum()
 
@@ -227,6 +252,7 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
     max_permitted_losses = max_loss * account_size / 100
     todays_permitted_loss = daily_loss * account_info_df["equity"].iloc[-1] / 100
 
+    commission = deals_dataframe["commission"].sum()
     status, red_causes = determine_status(
         trading_days,
         stage,
@@ -262,21 +288,23 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
             "Maximum Loss": [
                 f"{format(max_loss * 100, '.2f').rstrip('0').rstrip('.')}%".lstrip("0")
             ],
-            "Absolute Losses": [absolute_losses],
+            "Absolute Losses": "${:,.2f}".format(absolute_losses),
             "percentage of daily loss": [
                 f"{format(percentage_of_daily_loss, '.2f').rstrip('0').rstrip('.')}%".lstrip(
                     "0"
-                )],
+                )
+            ],
             "Percentage of Losses": [
                 f"{format(percentage_of_losses, '.2f').rstrip('0').rstrip('.')}%".lstrip(
                     "0"
                 )
             ],
-            "Absolute Profits": [total_profits_from_completed_trades],
+            "Absolute Profits": "${:,.2f}".format(total_profits_from_completed_trades),
             "percentage of daily profit": [
-                f"{format(ppercentage_of_daily_profit, '.2f').rstrip('0').rstrip('.')}%".lstrip(
+                f"{format(percentage_of_daily_profit, '.2f').rstrip('0').rstrip('.')}%".lstrip(
                     "0"
-                )],
+                )
+            ],
             "Percentage of Profits": [
                 f"{format(percentage_of_profits, '.2f').rstrip('0').rstrip('.')}%".lstrip(
                     "0"
@@ -292,6 +320,12 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
                     "0"
                 )
             ],
+            "Absolute daily loss": ["${:,.2f}".format(absolute_daily_loss)],
+            "Absolute Daily Profit": [
+                "${:,.2f}".format(absolute_daily_profit)
+                if absolute_daily_profit is not None
+                else None
+            ],
             "Daily Loss Time Difference (days)": [daily_loss_time_diff],
             "Active Trading Days": [trading_days],
             "Number of Trades": [number_of_trades],
@@ -304,7 +338,8 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
             "Max Permitted Losses": [max_permitted_losses],  # New: Max permitted losses
             "Today's Permitted Loss": [
                 todays_permitted_loss
-            ],  # New: Today's permitted loss
+            ],
+            "commission": commission  
         }
     )
 
@@ -323,9 +358,9 @@ def main():
     login_result = login_to_mt5(account, password, server)
     if login_result:
         account_info_df = get_account_info(account, password, server)
-        history_orders_df = get_history_orders(
-            account, password, server, from_date, to_date
-        )
+        # history_orders_df = get_history_orders(
+        #     account, password, server, from_date, to_date
+        # )
         history_deals_df = get_history_deals(
             account, password, server, from_date, to_date
         )
@@ -359,6 +394,8 @@ def main():
             # Display the final data
             logger.info(financial_data)
             financial_data.to_feather("financial_data.feather")
+            history_deals_df.to_feather("history_deals_df.feather")
+            mt5.shutdown()
         else:
             logger.info("Invalid choice. Please choose a valid analysis stage.")
     else:
