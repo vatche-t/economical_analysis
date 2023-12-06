@@ -287,7 +287,7 @@ app.layout = html.Div(
                 ),
                 html.Div(
                     [dcc.Graph(id="line_chart")],
-                    className="create_container1 five columns",
+                    className="create_container1 four columns",
                 ),
             ],
             className="row flex-display",
