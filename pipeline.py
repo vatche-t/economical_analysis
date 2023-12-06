@@ -32,25 +32,6 @@ def get_account_info(account, password, server):
         raise e
 
 
-# def get_history_orders(account, password, server, from_date, to_date):
-#     try:
-#         mt5.initialize()
-#         authorized = mt5.login(account, password=password, server=server)
-
-#         history_data = mt5.history_orders_get(from_date, to_date)
-#         history_orders_df = pd.DataFrame(
-#             list(history_data), columns=history_data[0]._asdict().keys()
-#         )
-
-#         # Log the length of the DataFrame
-#         logger.info(f"Length of history_orders_df: {len(history_orders_df)}")
-
-#         return history_orders_df
-#     except Exception as e:
-#         logger.error(f"Error while getting history orders: {str(e)}")
-#         raise e
-
-
 def get_history_deals(account, password, server, from_date, to_date):
     try:
         mt5.initialize()
@@ -336,10 +317,8 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
             "Server": [account_info_df["server"].iloc[0]],
             "Total Lots Traded": [total_lots_traded],  # New: Total lots traded
             "Max Permitted Losses": [max_permitted_losses],  # New: Max permitted losses
-            "Today's Permitted Loss": [
-                todays_permitted_loss
-            ],
-            "commission": commission  
+            "Today's Permitted Loss": [todays_permitted_loss],
+            "commission": commission,
         }
     )
 
