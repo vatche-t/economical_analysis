@@ -1,7 +1,11 @@
+import json
+
 import pandas as pd
 from datetime import datetime, timedelta
 from loguru import logger
 import MetaTrader5 as mt5
+
+from flask import Flask, request, jsonify
 
 
 def login_to_mt5(account, password, server):
@@ -319,18 +323,17 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
             "Max Permitted Losses": [max_permitted_losses],  # New: Max permitted losses
             "Today's Permitted Loss": [todays_permitted_loss],
             "commission": commission,
-            "stage": stage
+            "stage": stage,
         }
     )
 
     return financial_data
 
 
-def main():
-    account = 51913983
-    password = "drbj2iln"
-    server = "Alpari-MT5-Demo"
+app = Flask(__name__)
 
+
+def main(account, password, server, stage):
     from_date = datetime(2023, 1, 1)
     to_date = datetime.now()
 
@@ -350,37 +353,47 @@ def main():
         # Determine the number of active trading days
         trading_days = len(history_deals_df["time"].dt.date.unique())
 
-        # Ask the user to choose the stage
-        print("Choose the analysis stage:")
-        print("1. 1step")
-        print("2. 2step")
-        print("3. rocket")
-        user_choice = int(input("Enter the number corresponding to your choice: "))
-
-        # Process and analyze data
-        if user_choice == 1:
-            stage = "1step"
-        elif user_choice == 2:
-            stage = "2step"
-        elif user_choice == 3:
-            stage = "rocket"
-        else:
-            stage = "Invalid Choice"
-
-        if stage != "Invalid Choice":
-            financial_data = generate_final_data(
-                account_info_df, history_deals_df, trading_days, stage
+        if stage not in ["1step", "2step", "rocket"]:
+            return (
+                jsonify(
+                    {"error": "Invalid analysis stage. Choose 1step, 2step, or rocket."}
+                ),
+                400,
             )
-            # Display the final data
-            logger.info(financial_data)
-            financial_data.to_feather("financial_data.feather")
-            history_deals_df.to_feather("history_deals_df.feather")
-            mt5.shutdown()
-        else:
-            logger.info("Invalid choice. Please choose a valid analysis stage.")
+
+        # Process and analyze data based on the provided stage
+        financial_data = generate_final_data(
+            account_info_df, history_deals_df, trading_days, stage
+        )
+        # Display the final data
+        logger.info(financial_data)
+        financial_data_json = financial_data.to_json(orient="records")
+
+        history_deals_json = history_deals_df.to_json(orient="records")
+
+        mt5.shutdown()
+
+        return jsonify(
+            {
+                "financial_data": json.loads(financial_data_json),
+                "history_deals_df": json.loads(history_deals_json),
+            }
+        )
+
     else:
-        logger.info("Login failed.")
+        return jsonify({"error": "Login failed."}), 401
+
+
+@app.route("/run_analysis", methods=["POST"])
+def run_analysis():
+    data = request.get_json()
+    account = data.get("account")
+    password = data.get("password")
+    server = data.get("server")
+    stage = data.get("stage")
+
+    return main(account, password, server, stage)
 
 
 if __name__ == "__main__":
-    main()
+    app.run(debug=True)
