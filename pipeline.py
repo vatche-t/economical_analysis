@@ -124,7 +124,7 @@ def determine_status(
     else:
         red_causes.append({"Condition": "N/A"})
 
-    return "Red" if red_causes else "Green", red_causes
+    return "breached" if red_causes else "Green", red_causes
 
 
 def calculate_yesterdays_balance(deals_dataframe):
@@ -241,7 +241,7 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
         percentage_of_profits,
         percentage_of_daily_loss,
     )
-    logger.info(f"Red Causes: {red_causes}")
+    logger.info(f"breached Causes: {red_causes}")
 
     # Creating the final dataframe
     financial_data = pd.DataFrame(
@@ -319,6 +319,7 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
             "Max Permitted Losses": [max_permitted_losses],  # New: Max permitted losses
             "Today's Permitted Loss": [todays_permitted_loss],
             "commission": commission,
+            "stage": stage
         }
     )
 
