@@ -4,6 +4,8 @@ from dash import html
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 import pandas as pd
+import numpy as np
+
 
 financial_data = pd.read_feather("financial_data.feather")
 history_deals_df = pd.read_feather("history_deals_df.feather")
@@ -171,10 +173,6 @@ app.layout = html.Div([
                       style={'margin-top': '20px'},
                       ),
 
-                      dcc.Graph(id='commission', config={'displayModeBar': False}, className='dcc_compon',
-                      style={'margin-top': '20px'},
-                      ),
-
 
         ], className="create_container three columns", id="cross-filter-options"),
             html.Div([
@@ -183,36 +181,107 @@ app.layout = html.Div([
                               ], className="create_container four columns"),
 
             html.Div([
-                        html.H6(children='Total Loss',
-                                style={
-                                    'textAlign': 'center',
-                                    'color': 'white'}
-                                ),
-
-                        html.P(financial_data["Maximum Loss"][0],
-                            style={
-                                'textAlign': 'center',
-                                'color': '#dd1e35' if float(financial_data['Percentage of Losses'][0][:-1]) >= float(financial_data["Maximum Loss"][0][:-1]) else 'orange',
-                                'fontSize': 40}
-                            ),
-
-                        html.P('Total Loss:  ' + f"{financial_data['Absolute Losses'][0]}"
-                            + ' (' + str(financial_data["Percentage of Losses"][0]) + ' )',
-                            style={
-                                'textAlign': 'center',
-                                'color': '#dd1e35' if float(financial_data['Percentage of Losses'][0][:-1]) >= float(financial_data["Maximum Loss"][0][:-1]) else 'orange',
-                                'fontSize': 15,
-                                'margin-top': '-18px'}
-                            )], className="card_container three columns",
-                    ),
+                        dcc.Graph(id="line_chart") ], className="create_container1 five columns"),
 
         ], className="row flex-display"),
 
-html.Div([
+ html.Div([
         html.Div([
-            dcc.Graph(id="line_chart")], className="create_container1 twelve columns"),
+            html.H6(children="Win Rate",
+                    style={
+                        'textAlign': 'center',
+                        'color': 'white'}
+                    ),
 
-            ], className="row flex-display"),
+            html.P(f"{round(financial_data['Winrate'][0] * 100)}%",
+                   style={
+                       'textAlign': 'center',
+                       'color': 'green',
+                       'fontSize': 40,}
+                   ),
+
+            html.P('Average Win:  ' + str(round(financial_data['Average Win'][0]))
+                   + '$',
+                   style={
+                       'textAlign': 'center',
+                       'color': 'green' ,
+                       'fontSize': 15,
+                       'margin-top': '-18px'}
+                   )], className="card_container three columns",
+        ),
+
+        html.Div([
+            html.H6(children='Total Lots Traded',
+                    style={
+                        'textAlign': 'center',
+                        'color': 'white'}
+                    ),
+
+            html.P(financial_data["Total Lots Traded"][0],
+                   style={
+                       'textAlign': 'center',
+                       'color': '#dd1e35' ,
+                       'fontSize': 40}
+                   ),
+
+            html.P('Number of Trades :  ' + str(financial_data['Number of Trades'][0]),
+                   style={
+                       'textAlign': 'center',
+                       'color': '#dd1e35' ,
+                       'fontSize': 15,
+                       'margin-top': '-18px'}
+                   )], className="card_container three columns",
+        ),
+
+        html.Div([
+            html.H6(children='Equity',
+                    style={
+                        'textAlign': 'center',
+                        'color': 'white'}
+                    ),
+
+            html.P(f"${financial_data['Equity'][0]:,.2f}",
+                   style={
+                       'textAlign': 'center',
+                       'color': '#dd1e35',
+                       'fontSize': 40}
+                   ),
+
+            html.P('Starting Balance:  ' + f"{int(financial_data['Account Size'][0])}"
+                   + '$',
+                   style={
+                       'textAlign': 'center',
+                       'color': '#dd1e35',
+                       'fontSize': 15,
+                       'margin-top': '-18px'}
+                   )], className="card_container three columns",
+        ),
+
+        html.Div([
+            html.H6(children='Platform',
+                    style={
+                        'textAlign': 'center',
+                        'color': 'white'}
+                    ),
+
+            html.P(financial_data["Platform"][0],
+                   style={
+                       'textAlign': 'center',
+                       'color': 'orange',
+                       'margin-top': '10px',
+                       'fontSize': 25}
+                   ),
+
+            html.P('Server: ' + financial_data["Server"],
+                   style={
+                       'textAlign': 'center',
+                       'color': 'orange',
+                       'fontSize': 15,
+                       'padding': '15px',
+                       'margin-top': '-18px'}
+                   )], className="card_container three columns")
+
+    ], className="row flex-display"),
 
     ], id="mainContainer",
     style={"display": "flex", "flex-direction": "column"})
@@ -353,10 +422,12 @@ def update_confirmed(selected_account):
 
             }
 
+# Your existing Dash layout and initialization code
+
 
 @app.callback(Output('pie_chart', 'figure'),
               [Input('financial_data', 'value')])
-def update_confirmed(selected_account):
+def update_pie_chart(selected_account):
     # Get the row corresponding to the selected account
     selected_row = financial_data.loc[financial_data['Account Size'] == selected_account]
     
@@ -367,24 +438,30 @@ def update_confirmed(selected_account):
     # Round the values to two decimal places (adjust as needed)
     average_win = round(average_win)
     average_loss = round(average_loss)
-    
-    colors = ['orange', '#dd1e35', 'green', '#e55467']  # Assign colors to win and loss
 
-    # Debugging information
-    print(f"Selected Account: {selected_account}")
-    print(f"Average Win: {average_win}")
-    print(f"Average Loss: {average_loss}")
+    # Calculate absolute values for clarity in the pie chart
+    selected_row['Absolute Win'] = abs(average_win)
+    selected_row['Absolute Loss'] = abs(average_loss)
+
+    # Round up the values
+    selected_row['Absolute Win Rounded'] = np.ceil(selected_row['Absolute Win'])
+    selected_row['Absolute Loss Rounded'] = np.ceil(selected_row['Absolute Loss'])
+
+    colors = ['#3D9970', '#dd1e35']  # Assign colors to win and loss
 
     return {
         'data': [go.Pie(
             labels=['Average Win', 'Average Loss'],
-            values=[average_win, average_loss],
+            values=[selected_row['Absolute Win Rounded'].iloc[0], selected_row['Absolute Loss Rounded'].iloc[0]],
             marker=dict(colors=colors),
-            hoverinfo='label+value+percent',
-            textinfo='label+value',
+            hoverinfo='label+percent+value',  # Include the 'value' in hoverinfo
+            textinfo='label+percent',  # Display 'label' and 'percent' in the text
+            texttemplate='%{label}: $%{value}',  # Customize the text template to include '$'
             textfont=dict(size=13),
-            hole=.8,
-            rotation=45
+            hole=0.7,
+            rotation=45,
+            insidetextorientation='radial',  # Adjusts text orientation for better visibility
+            textposition='outside',  # Position text inside the pie chart
         )],
 
         'layout': go.Layout(
@@ -392,7 +469,7 @@ def update_confirmed(selected_account):
             paper_bgcolor='#1f2c56',
             hovermode='closest',
             title={
-                'text': f'Average Win vs. Average Loss for Account Size: {selected_account}',
+                'text': f'Average Win vs. Average Loss',
                 'y': 0.93,
                 'x': 0.5,
                 'xanchor': 'center',
@@ -416,35 +493,29 @@ def update_confirmed(selected_account):
 def update_pnl_chart(selected_account):
     # Filter the history_deals_df based on the selected account
     selected_deals = history_deals_df.copy()
-    selected_deals['cumulative_profit'] = selected_deals['profit'].cumsum()
+    
+    # Calculate mean profit and loss for each day
+    mean_daily_profit = selected_deals.groupby(selected_deals['time'].dt.date)['profit'].mean()
+    
+    # Create a new column for cumulative balance
+    selected_deals['cumulative_balance'] = selected_deals['profit'].cumsum()  
 
-    # Drop rows with NaN values in the 'cumulative_profit' column
-    selected_deals = selected_deals.dropna(subset=['cumulative_profit'])
-
+    # Drop rows with NaN values in the 'cumulative_balance' column
+    selected_deals = selected_deals.dropna(subset=['cumulative_balance'])
+    
     return {
         'data': [
-            go.Bar(
-                x=selected_deals['time'],
-                y=selected_deals['cumulative_profit'],
-                name='Daily confirmed',
-                marker=dict(color='orange'),
-                hoverinfo='text',
-                hovertext=(
-                    '<b>Date</b>: ' + selected_deals['time'].astype(str) + '<br>' +
-                    '<b>Cumulative Profit</b>: ' + [f'{x:,.2f}' for x in selected_deals['cumulative_profit']] + '<br>'
-                )
-            ),
             go.Scatter(
-                x=selected_deals['time'],
-                y=selected_deals['cumulative_profit'],
+                x=mean_daily_profit.index,
+                y=selected_deals.groupby(selected_deals['time'].dt.date)['cumulative_balance'].last().values,
                 mode='lines+markers',
-                name='Cumulative Profit',
+                name='Cumulative Balance',
                 line=dict(width=3, color='#FF00FF'),
                 marker=dict(color='orange'),
                 hoverinfo='text',
                 hovertext=(
-                    '<b>Date</b>: ' + selected_deals['time'].astype(str) + '<br>' +
-                    '<b>Cumulative Profit</b>: ' + [f'{x:,.2f}' for x in selected_deals['cumulative_profit']] + '<br>'
+                    '<b>Date</b>: ' + mean_daily_profit.index.astype(str) + '<br>' +
+                    '<b>Cumulative Balance</b>: ' + [f'{x:,.2f}' for x in selected_deals.groupby(selected_deals['time'].dt.date)['cumulative_balance'].last().values] + '<br>'
                 )
             )
         ],
@@ -472,7 +543,7 @@ def update_pnl_chart(selected_account):
                 tickfont=dict(family='Arial', size=12, color='white')
             ),
             yaxis=dict(
-                title='<b>Cumulative Profit</b>',
+                title='<b>Cumulative Balance</b>',
                 color='white',
                 showline=True,
                 showgrid=True,
@@ -490,7 +561,6 @@ def update_pnl_chart(selected_account):
             font=dict(family="sans-serif", size=12, color='white'),
         )
     }
-
 
 
 if __name__ == '__main__':
