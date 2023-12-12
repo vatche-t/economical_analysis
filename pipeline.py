@@ -6,6 +6,7 @@ from loguru import logger
 import MetaTrader5 as mt5
 
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 
 def login_to_mt5(account, password, server):
@@ -331,6 +332,7 @@ def generate_final_data(account_info_df, deals_dataframe, trading_days, stage):
 
 
 app = Flask(__name__)
+CORS(app)
 
 
 def main(account, password, server, stage):
