@@ -339,51 +339,56 @@ def main(account, password, server, stage):
     from_date = datetime(2023, 1, 1)
     to_date = datetime.now()
 
-    # Get data
-    login_result = login_to_mt5(account, password, server)
-    if login_result:
-        account_info_df = get_account_info(account, password, server)
-        # history_orders_df = get_history_orders(
-        #     account, password, server, from_date, to_date
-        # )
-        history_deals_df = get_history_deals(
-            account, password, server, from_date, to_date
-        )
+    try:
+        # Get data
+        login_result = login_to_mt5(account, password, server)
+        
+        # Log login result for debugging
+        logger.info(f"Login Result: {login_result}")
 
-        history_deals_df["time"] = pd.to_datetime(history_deals_df["time"], unit="s")
+        if login_result:
+            account_info_df = get_account_info(account, password, server)
+            history_deals_df = get_history_deals(account, password, server, from_date, to_date)
 
-        # Determine the number of active trading days
-        trading_days = len(history_deals_df["time"].dt.date.unique())
+            history_deals_df["time"] = pd.to_datetime(history_deals_df["time"], unit="s")
 
-        if stage not in ["1step", "2step", "rocket"]:
-            return (
-                jsonify(
-                    {"error": "Invalid analysis stage. Choose 1step, 2step, or rocket."}
-                ),
-                400,
+            # Determine the number of active trading days
+            trading_days = len(history_deals_df["time"].dt.date.unique())
+
+            if stage not in ["1step", "2step", "rocket"]:
+                return (
+                    jsonify(
+                        {"error": "Invalid analysis stage. Choose 1step, 2step, or rocket."}
+                    ),
+                    400,
+                )
+
+            # Process and analyze data based on the provided stage
+            financial_data = generate_final_data(
+                account_info_df, history_deals_df, trading_days, stage
             )
+            
+            # Display the final data
+            logger.info(financial_data)
+            
+            financial_data_json = financial_data.to_json(orient="records")
+            history_deals_json = history_deals_df.to_json(orient="records")
 
-        # Process and analyze data based on the provided stage
-        financial_data = generate_final_data(
-            account_info_df, history_deals_df, trading_days, stage
-        )
-        # Display the final data
-        logger.info(financial_data)
-        financial_data_json = financial_data.to_json(orient="records")
+            mt5.shutdown()
 
-        history_deals_json = history_deals_df.to_json(orient="records")
+            return jsonify(
+                {
+                    "financial_data": json.loads(financial_data_json),
+                    "history_deals_df": json.loads(history_deals_json),
+                }
+            )
+        else:
+            return jsonify({"error": "Login failed."}), 401
+    except Exception as e:
+        # Log any exceptions for debugging
+        logger.error(f"Error in main function: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
 
-        mt5.shutdown()
-
-        return jsonify(
-            {
-                "financial_data": json.loads(financial_data_json),
-                "history_deals_df": json.loads(history_deals_json),
-            }
-        )
-
-    else:
-        return jsonify({"error": "Login failed."}), 401
 
 
 @app.route("/run_analysis", methods=["POST"])
