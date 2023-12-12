@@ -1,5 +1,6 @@
 from dash import Dash, html, dcc, Input, Output, State
 import plotly.graph_objs as go
+from flask_cors import CORS
 
 import requests
 import pandas as pd
@@ -9,6 +10,7 @@ import dashboard
 
 # Initialize the Dash app
 app = Dash(__name__,suppress_callback_exceptions=True)
+CORS(app.server)
 
 # Define the layout of the app
 app.layout = html.Div([
