@@ -403,9 +403,6 @@ def run_analysis():
         server = data.get("server")
         stage = data.get("stage")
 
-        # Log extracted data for debugging
-        logger.info(f"Extracted data: account={account}, password={password}, server={server}, stage={stage}")
-
         return main(account, password, server, stage)
     except Exception as e:
         # Log any exceptions for debugging
