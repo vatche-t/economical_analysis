@@ -390,17 +390,28 @@ def main(account, password, server, stage):
         return jsonify({"error": "Internal server error"}), 500
 
 
-
 @app.route("/run_analysis", methods=["POST"])
 def run_analysis():
-    data = request.get_json()
-    account = data.get("account")
-    password = data.get("password")
-    server = data.get("server")
-    stage = data.get("stage")
-    
+    try:
+        data = request.get_json()
 
-    return main(account, password, server, stage)
+        # Log received data for debugging
+        logger.info(f"Received POST data: {data}")
+
+        account = data.get("account")
+        password = data.get("password")
+        server = data.get("server")
+        stage = data.get("stage")
+
+        # Log extracted data for debugging
+        logger.info(f"Extracted data: account={account}, password={password}, server={server}, stage={stage}")
+
+        return main(account, password, server, stage)
+    except Exception as e:
+        # Log any exceptions for debugging
+        logger.error(f"Error processing request: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
+
 
 
 if __name__ == "__main__":
