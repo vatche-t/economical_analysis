@@ -52,3 +52,6 @@ This script is designed to analyze financial data from MetaTrader 5 (MT5) and pr
 
 This script is provided for educational and informational purposes only. Trading involves risks, and users should exercise caution and do their own research.
 
+
+
+Last updated on: 2024-02-11
